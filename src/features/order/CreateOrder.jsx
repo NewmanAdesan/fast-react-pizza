@@ -4,6 +4,7 @@ import { createOrder } from "../../services/apiRestaurant";
 import Button from "../../ui/Button";
 import {useSelector} from 'react-redux'
 import { getUsername } from "../user/userSlice";
+import { getCart } from "../cart/cartSlice";
 
 // https://uibakery.io/regex-library/phone-number
 const isValidPhone = (str) =>
@@ -41,7 +42,9 @@ function CreateOrder() {
   const formErrors = useActionData();
   const username = useSelector(getUsername)
   // const [withPriority, setWithPriority] = useState(false);
-  const cart = fakeCart;
+  const cart = useSelector(getCart);
+
+  if (!cart.length) return <EmptyCart />
 
   return (
     <div className="px-4 py-6">

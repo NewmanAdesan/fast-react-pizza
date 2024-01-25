@@ -303,8 +303,8 @@
 				</div>
 
 
-// PERFORM A DELETE ACTION ON THE STORE CART DATA (Deleting Cart Items)
-// this delete button will be located in the cart page for each menu item that we have picked.
+// PERFORM A DELETE ACTION ON THE STORE CART DATA (Deleting Cart Items @Menu-Page, @Cart-Page)
+// this delete button will be located in the cart page beside each item in the cart.
 // this delete button will also be located in the menu page. to delete a menu item that has been added to cart
 // therefore we need a delete button component
 				// @DeleteItem.jsx (src/features/cart/DeleteItem)
@@ -320,7 +320,7 @@
 								onClick={() => dispatch(deleteItem(pizzaId))}
 							>
 								Delete
-							</Button>
+						   </Button>
 				}
 
 				export default DeleteItem;
@@ -335,7 +335,7 @@
 
 				...
 
-				{isInCart && <DeleteItem pizzaId={pizzaId}/>}
+				{isInCart && <DeleteItem pizzaId={id}/>}
 
 				// @cartSlice.js
 				export const getCurrentQuantityById = (state) => state.cart.cart.find(item => item.pizzaId === id )?.quantity ?? 0;
@@ -394,7 +394,7 @@
 				...
 				decreaseItemQuantity(state, action) {
 					...
-					if(item.quantity >== 0) cartSlice.caseReducers.deleteItem(state, action);
+					if(item.quantity <== 0) cartSlice.caseReducers.deleteItem(state, action);
 				}
 
 				// @CartItem.jsx
