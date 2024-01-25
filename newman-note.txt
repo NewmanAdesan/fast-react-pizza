@@ -1,0 +1,443 @@
+/**
+ * 
+ * 
+ * 
+
+// install redux toolkit
+// npm i @reduxjs/toolkit npm i react-redux
+
+
+// CREATE THE USER DATA SLICE
+// userSlice.js (ignore the functions getPosition, fetchAddress & getAddress for now - comment it out)
+	// 1.) create the initial state object
+				const initialState = {
+					username = 'Newman'
+				}
+	
+	// 2.) create the userSlice object which would have the reducer which action types handler defined
+			const userSlice = createSlice({
+				name: 'user'
+				initialState,
+				reducers: {
+					updateName(state, action) {
+						state.username = action.payload
+					}
+				}
+			}
+
+	// export the reducer & the automatically created actions
+			export const {updateName} = userSlice.actions
+			export default userSlice.reducer
+)
+
+
+
+// SETUP THE STORE
+// src/store.js
+			import {configureStore} from "@reduxjs/toolkit"
+			import {userReducer} from './features/user/userSlice';
+
+			const store = configureStore({
+				reducer: {
+					user: userReducer
+				}
+			})
+
+			export default store;
+
+
+
+// BROADCAST STORE TO THE APPLICATION
+// @app.jsx
+		
+		...
+		import {Provider} from 'react-redux';
+		import store from './store';
+
+
+			<React.StrictMode>
+					<Provider store={store}>
+							<App />
+					</Provider>
+			</React.StrictMode>
+
+
+// CONSUME THE USERNAME STATE IN THE STORE
+// @Username.jsx
+		function Username(){
+			const username =  useSelector(state => state.user.username)
+
+			if (!username) return null
+
+			return(
+				...
+			)
+		}
+
+
+// UPDATE THE USERNAME STATE IN THE STORE VIA AN ACTION
+// in the homepage, the start ordering button updates the username in the store
+// @CreateUser.jsx
+
+		import {updateName} from './userSlice'
+		import {useDispatch} from 'react-redux'
+
+		const [username, setUsername] = useState("") // local state that keeps track of entry to the input
+		const dispatch = useDispatch()
+		const navigate = useNavigate()
+
+		function handleSubmit(e) {
+			e.preventDefault();
+
+			if (!username) return;
+
+			dispatch(updateName(username));
+
+			navigate('/menu')
+		}
+
+// CONSUME THE STORE USERNAME STATE IN THE HOME COMPONENT, CART COMPONENT & 
+// @Home.jsx
+
+		import Button from './Button'
+
+		const username = useSelector(state => state.user.username)
+
+		...
+
+		{username == '' ? <CreateUser /> : <Button type='primary' to='/menu'>Continue Ordering, {username}<Button>}
+
+	@Cart.jsx
+		
+		const username = useSelector(state => state.user.username)
+
+		<h2>...{username}</h2>
+
+	@CreateOrder.jsx
+		
+		const username = useSelector(state => state.user.username)
+
+		...
+
+		<input
+			...
+			defaultValue = {username}
+		/>
+
+
+
+
+// CREATE THE CART DATA SLICE
+//@cartSlice.js
+
+		const initialState = {
+			cart: [
+				{
+					pizzaId: 12,
+					name: 'Mediterranean',
+					quantity: 2,
+					unitPrice: 16,
+					totalPrice: 32
+
+				}
+			],
+		}
+
+
+		const cartSlice = createSlice({
+			name: cart
+			initialState,
+			reducers: {
+				addItem(state, action) {
+					// payload = newItem
+					state.cart.push(action.payload);
+				},
+
+				deleteItem(state, action) {
+					// payload = pizzaId
+					state.cart = state.cart.filter(item => item.pizzaId !== action.payload)
+				},
+
+				increaseItemQuantity(state, action) {
+					// payload = pizzaId (of the cart item to increment)
+					const item = state.cart.find(item => item.pizzaId == action.payload)
+					item.quantity += 1;
+					item.totalPrice = item.quantity * item.unitPrice;
+				},
+
+				deleteItemQuantity(state, action) {
+					// payload = pizzaId (of the cart item to increment)
+					const item = state.cart.find(item => item.pizzaId == action.payload)
+					item.quantity -= 1;
+					item.totalPrice = item.quantity * item.unitPrice;
+				},
+
+				clearCart(state) {
+					state.cart = []
+				}
+			}
+		})
+
+
+		export default cartSlice.reducer;
+		export const {
+			addItem, 
+			deleteItem, 
+			increaseItemQuantity, 
+			deleteItemQuantity, 
+			clearCart
+		} = cartSlice.actions;
+
+// @store.js
+		import cartReducer from './features/cart/cartSlice';
+
+		const store = configureStore({
+			reducer: {
+				user: userReducer,
+				cart: cartReducer
+			}
+		})
+
+
+
+// PERFORM ACTIONS ON THE STORE CART DATA
+// @MenuItem.jsx
+// (if a menu item is sold out do not display the 'Add to Cart' Button)
+// (place an onclick event on the Button custom component that calls the handleAddToCart function)
+// (set this onclick property as a prop in the Button custom component, if this prop has a value, return another similar button but it has its onclick property setup )
+
+		@MenuItem.jsx
+		{!soldOut && <Button ... onClick={handleAddToCart}>...</Button>}
+
+		@Button.jsx
+		function Button({..., onClick}) {
+			...
+
+			if (onclick)
+				return <button onClick={onClick} ...>...</button>
+
+			...
+		}
+
+		@MenuItem.jsx
+		function handleAddToCart(){
+			const newItem = {
+				pizzaId: id,
+				name,
+				quantity: 1,
+				unitPrice,
+				totalPrice: unitPrice * 1
+			}
+
+			dispatch(addItem(newItem))
+		}
+
+--------@@ USE THE REDUX DEV TOOLS TO CHECK IF THE ACTION WORKED @@--------
+
+
+
+
+// CONSUME STORE CART DATA IN THE CARTOVERVIEW COMPONENT
+//@CartOverview.jsx
+
+		const totalCartQuantity = useSelector(
+			state => state.cart.cart.reduce(
+				(sum, item) => sum = sum + item.quantity,
+				0
+			)
+		)
+
+		// redux advise we do it like this, that this function should be in the select
+		// redux also advice a refactor, such that the selection function is place in the cartSlice script, better centralization
+		// @cartSlice.js
+				...
+				export const getTotalCartQuantity = (state) => state.cart.cart.reduce( (sum, item) => sum = sum + item.quantity, 0 )
+
+		//CartOverview.jsx
+		   import { getTotalCartQuantity } from './cartSlice'
+		   const totalCartQuantity = useSelector(getTotalCartQuantity)
+
+		// also create a selector function to compute the quantity
+		//@cartSlice.js
+				...
+				export const getTotalCartPrice = (state) => state.cart.cart.reduce( (sum, item) => sum = sum + item.totalPrice, 0 )
+
+		//CartOverview.jsx
+		import { getTotalCartPrice } from './cartSlice'
+		const totalCartPrice = useSelector(getTotalCartPrice)
+
+		...
+
+		<span>{totalCartQuantity} pizzas</span>
+		<span>{formatCurrency(totalCartPrice)}</span>
+
+		//CartOverview.jsx
+		// if there is no cart items, that CartOverview UI should not show
+		if (!totalCartQuantity) return null;
+	
+--------@@ BY THE WAY, HAVING SELECTORS LIKE THIS MIGHT CAUSE PERFORMANCE ISSUES IN LARGER APPLICATION - IF YOU ARE SERIOUS ABOUT REDUX, LOOK INTO THE RESELECT LIBRARY THAT WOULD ALLOW US OPTIMIZE THIS SELECTORS  @@--------
+
+
+
+// CONSUME STORE CART DATA IN THE CART COMPONENT FUNCTION
+// @Cart.jsx
+
+				// @cartSlice.js (note that centralization is an huge advantage that fosters scalability)
+				export const getCart = state => state.cart.cart
+
+				// @Cart.jsx
+				const cart = useSelector(getCart)
+				...
+				<Button type="secondary" onClick={() => dispatch(clearCart())}>Clear Cart</Button>
+				 
+				// @Cart.jsx
+				// if no item in the cart we would render a component called EmptyCart component
+				if (!cart.length) return <EmptyCart />
+
+				// @EmptyCart.jsx
+				<div className='px-4 py-3'>
+					<LinkButton to="/menu">$larr; Back to menu</LinkButton>
+					<p className="font-semibold mt-7">
+						Your cart is still empty. Start adding some pizzas :)
+					</p>
+				</div>
+
+
+// PERFORM A DELETE ACTION ON THE STORE CART DATA (Deleting Cart Items)
+// this delete button will be located in the cart page for each menu item that we have picked.
+// this delete button will also be located in the menu page. to delete a menu item that has been added to cart
+// therefore we need a delete button component
+				// @DeleteItem.jsx (src/features/cart/DeleteItem)
+				import Button from '../ui/Button'
+				import {useDispatch} from 'react-redux'
+				import {deleteItem} from './cartSlice'
+
+				function DeleteItem({pizzaId}) {
+					const dispatch = useDispatch();
+
+					return <Button 
+								type="small"
+								onClick={() => dispatch(deleteItem(pizzaId))}
+							>
+								Delete
+							</Button>
+				}
+
+				export default DeleteItem;
+
+				// @CartItem.jsx
+				...
+				<DeleteItem pizzaId={pizzaId}/>
+
+				// @MenuItem.jsx
+				const currentQuantity = useSelector(getCurrentQuantityById(id))
+				const isInCart = currentQuantity > 0
+
+				...
+
+				{isInCart && <DeleteItem pizzaId={pizzaId}/>}
+
+				// @cartSlice.js
+				export const getCurrentQuantityById = (state) => state.cart.cart.find(item => item.pizzaId === id )?.quantity ?? 0;
+
+				...
+
+				{!soldOut && !isInCart && (
+					<Button ...>Add to Cart</Button>
+				)}
+
+
+
+// PERFORM A UPDATE QUANTITY ACTION ON THE STORE CART DATA (UPDATING THE CART QUANTITY)
+// @UpdateItemQuantity.jsx
+// for each cart item, we want to see the quantity, we want a button to increment & decrement
+// this would appear in the cart page, this would also appear in the menu page
+				
+				// @UpdateItemQuantity.jsx
+				function UpdateItemQuantity({pizzaId}) {
+					return (
+						<div>
+							<Button type='round'>-</Button>
+							<Button type='round'>+</Button>
+						</div>
+					)
+				}
+ 
+				// @CartItem.jsx
+				...
+				<UpdateItemQuantity pizzaId={pizzaId} />
+				...
+
+				// @Button.jsx
+				...
+				const styles = {
+					...
+					round: base + ' px-2.5 py-1 md:px-3.5 md:py-2 text-sm'
+				}
+				
+				// @UpdateItemQuantity.jsx
+				function UpdateItemQuantity({pizzaId}) {
+					return (
+						<div className='flex gap-1 items-center md:gap-3'>
+							<Button type='round' onClick={() => dispatch(decreaseItemQuantity(pizzaId))}>-</Button>
+							<Button type='round' onClick={() => dispatch(decreaseItemQuantity(pizzaId))}>+</Button>
+						</div>
+					)
+				}
+
+				// @cartSlice.jsx
+				// we need to fix an issue
+				// once the item has been reduced to zero, the cart item will delete
+				// the best place to do this is in the reducer, the decreaseItemQuantity action
+				// in the reducer, in the decreaseItemQuantity action, its best to reuse the deletItem functionality HOW?
+
+				...
+				decreaseItemQuantity(state, action) {
+					...
+					if(item.quantity >== 0) cartSlice.caseReducers.deleteItem(state, action);
+				}
+
+				// @CartItem.jsx
+				...
+
+				const currentQuantity = useSelector(getCurrentQuantityById(pizzaId))
+
+				...
+
+				<UpdateItemQuantity pizzaId={pizzaId} currentQuantity={currentQuantity} />
+
+
+				// @UpdateItemQuantity.jsx
+				function UpdateItemQuantity({pizzaId, currentQuantity}) {
+					...
+
+
+					return (
+						<div className='flex gap-2 items-center md:gap-3'>
+							<Button type='round' onClick={() => dispatch(decreaseItemQuantity(pizzaId))}>-</Button>
+							<span className='text-sm font-medium'>{currentQuantity}</span>
+							<Button type='round' onClick={() => dispatch(decreaseItemQuantity(pizzaId))}>+</Button>
+						</div>
+					)
+				}
+
+				// @MenuItem.jsx
+				// time to reuse the update item quantity section
+				...
+				{
+					isInCart && <div className="flex items-center gap-3 sm:gap-8">
+						<UpdateItemQuantity pizzaId={id} currentQuantity={currentQuantity} />
+						<DeleteItem pizzaId={id} />
+					</div>
+				}
+
+	
+// instead of submitting with the fake cart, we would get the cart data from the store
+// @CreateOrder.jsx
+		const cart = useSelector(getCart);
+
+		if (!cart.length) return <EmptyCart />
+
+
+
+**/
