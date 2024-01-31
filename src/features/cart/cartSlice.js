@@ -1,17 +1,20 @@
 
 import {createSlice} from '@reduxjs/toolkit'
 
+// cart: [
+//   {
+//       pizzaId: 12,
+//       name: 'Mediterranean',
+//       quantity: 2,
+//       unitPrice: 16,
+//       totalPrice: 32
+//   }
+// ]
+
 
 // 1. CREATE THE INITIAL STATE OBJECT FOR USER DATA
 const initialState = {
     cart: [
-        {
-            pizzaId: 12,
-            name: 'Mediterranean',
-            quantity: 2,
-            unitPrice: 16,
-            totalPrice: 32
-        }
     ]
 }
 

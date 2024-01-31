@@ -431,7 +431,9 @@
 					</div>
 				}
 
-	
+
+
+// CONSUME STORE CART DATA IN THE CreateOrder COMPONENT FOR SUBMISSION
 // instead of submitting with the fake cart, we would get the cart data from the store
 // @CreateOrder.jsx
 		const cart = useSelector(getCart);
@@ -439,5 +441,365 @@
 		if (!cart.length) return <EmptyCart />
 
 
+
+// PERFORM THE CLEAR CART ACTION OUTSIDE A COMPONENT
+// what we want is, After the order has been placed, the application is redirected to the order page
+// this is not as easy as it sounds. to understand LET ME TELL A STORY
+
+			// CHAPTER 1: REACT-ROUTER-6 DATA ACTIONS
+					- remember with the new DATA ACTIONS FEATURE in react-router@6,
+					- we have a 'Form' Component such that if a submit button is clickec,
+					- it will encapsulate the name/value of the form field element in it in an object
+					- then send to a function, an action function we will specify
+					- this action function is already attached to the 'Route'.
+					- its this function that performs asynchronous activity with this data LIKE posting it to a server
+					- WHY THIS STORY?
+
+			// CHAPTER 2: REDIRECTING WITHOUT useNavigate HOOK
+					- why the story in chapter 1
+					- you see, it in this funtion that we redirect to the ORDER PAGE
+					- remember 
+					- to redirect to another page we had to use the 'useNavigate hook' from react router.
+					- hooks are only used in react components
+					- therefore react-router provides a way around this. 
+					- by default they pass a function called 'redirect' to our action function. 
+					- we use this function to navigate to another route
+					- OKAY BUT WHY THIS NEW STORY?
+
+			// FINAL CHAPTER: DISPATCHING ACTION WITHOUT useDispatch HOOK
+					- okay why the story in chapter 2
+					- you see, 
+					- we need to dispatch a clearCart action 
+					- but we cannot use the 'useDispatch hook' in the action function as it is not a react component
+					- so what do we do? we go back to the first principle, we go back to initial redux
+
+					- this means we will call the dispatch function on the store itself 
+
+							...
+							store.dispatch(clearCart()))
+							redirect(`/order/${newOrder.id}`)
+
+					- BUT PLEASE, DO NOT OVERUSE THIS BECAUSE useDispatch HOOK BY REACT-REDUX DO SOME OPTIMIZATION BEHIND THE SCENES
+
+
+
+
+
+
+
+// CONSUME THE CART DATA INTO THE CREATEORDER COMPONENT
+// what do we want
+		- we want to display the total prize of pizzas in our cart on the create order button, 
+		- it will be beside the create order text
+		- the total price is computed from the the store cart data
+		- but also the total price can increase by 20% if the priority check box is checked
+
+		@CreateOrder.jsx
+		...
+		const totalPrice = useSelector(getTotalCartPrice)
+		...
+		<Button ...>
+			...
+			`Order now for ${formatCurrency(totalPrice)}`
+
+
+		@CreateOrder.jsx - adding priority
+		const [withPriority, setWithPriority] = useState(false);
+		...
+		const totalCartPrice = useSelector(getTotalCartPrice)
+		const priority = withPriority ? totalCartPrice * 0.2 : 0
+		const totalPrice = totalCartPrice + priority
+		...
+		<input
+			...
+			value={withPriority}
+			onChange={(e) => setWithPriority(prev => !prev)}
+		/>
+		...
+		export async function action({request}){
+			...
+			const order = {
+				...
+				priority: data.priority === 'true',
+
+			}
+		}
+
+
+// IMPLEMENTING THE GEO-LOCATION FEATURE: ASYNCHRONOUSITY WITH THUNKS IN REDUX TOOLKIT (SETTING UP A MIDDLEWARE)
+// we have talked about how setting up middleware with thunks in redux before 
+		- a middleware because we want to deal with asynchronous operations but cannot in a reducer.
+		- the way we do it is, 
+		- our action creators return an async function that returns a payload instead of returning an action object.
+		- plus when configuring the store, we tell it to use thunks
+// with redux toolkit, we have a way of doing this BY USING THE createAsyncThunk funtion.
+		- first, we use the createAsyncThunk function to create an action creator
+		- second, we can create a special reducer which would embody an asynchronous operation
+
+
+		@userSlice.js
+		STEP 1: WE CREATE THE ACION CREATOR WITH createAsyncThunk
+
+			export const fetchAddress = createAsyncThunk(
+				'user/fetchAdress', 
+				async function () {
+
+					// 1. we get the user's geolocation position
+					...
+					const position = ...
+
+					// 2. we use a reverse geocoding API to get the description of user's address
+					...
+					const address = `...`
+
+					// 3. we return a payload
+					return {position, address}
+
+				}
+
+			)
+
+
+		STEP 2: WE CREATE A SPECIAL REDUCER THAT HANDLES THE PENDING, FULFILLED & REJECTED STATE OF THE ASYNCHRONOUS FUNCTION
+
+			const initialState = {
+				username: '',
+				status: 'idle',
+				position: {},
+				address: '',
+				error: '',
+
+			}
+
+			const userSlice = createSlice( {
+				...
+				extraReducers: (builder) => 
+										builder
+											.addCase(
+												fetchAddress.pending,
+												(state, action) => state.status = 'loading')
+											.addCase(
+												fetchAddress.fulfilled,
+												(state, action) =>{
+													state.status = 'idle'
+													state.position = action.payload.position;
+													state.address = action.payload.address
+												})
+											.addCase(
+												fetchAddress.rejected,
+												(state, action) =>{
+													state.status = 'error';
+													state.error = 'There was a problem getting your address. Make sure to fill this field!';
+												})
+			})
+
+			// notice the chaining in the extra reducers
+			// notice the addCase has 2 parameters: the asynchronous status & the reducer blueprint
+			// notice that the action type was specified in the the fetchAddress function
+			// notice it is called fetchAddress not getAddress AS THIS IS NOT A SELECTOR
+			// notice we have 3 reducers 
+					- 'user/fetchAddress/pending'
+					- 'user/fetchAddress/fulfilled'
+					- 'user/fetchAddress/rejected'
+
+
+
+		TEST: 
+			- lets create a button in our component that would dispatch this action
+			- then use the redux dev tools to set how it works
+
+
+
+	@CreateOrder.jsx - place the get position button
+	...
+	<div className='... relative'>
+		<label ...>Address</label>
+		<input ... />
+		<span className="absolute right-[3px] top-[3px] z-50 md:right-[5px] md:top-[5px]">
+			<Button
+				type="small"
+				onClick={(e) => {e.preventDefault();  dispatch(fetchAddress())}}
+			>
+				GET POSITION
+			</Button>
+		</span>
+	</div>
+	...
+
+
+	@CreateOrder.jsx - consume the status, address, position data in user state
+	...
+	const {username, status: addressStatus, address, position, error: errorAddress} = useSelector(state => state.user)
+	const isAddressLoading = addressStatus === 'loading';
+	...
+	<Form>
+		...
+		<div ...>
+			...
+			<input disabled={isAddressLoading} defaultAddress={address} ... />
+			{!position.latitude && !position.longitude && <span ...>
+				<Button disabled={isAddressLoading} ...> ... </Button>
+			</span>}
+		</div>
+		...
+		<div>
+		...
+		<div>
+			...
+			<Button disable={isSubmitting || isLoadingAddress} ...>
+				...
+			</Button>
+		</div>
+	</Form>
+
+
+	@CreateOrder.jsx - display geolocation fetch error
+	...
+	<div ...>
+		<label ...>Address</label>
+		<div ...>
+			<input ... />
+			{addressStatus === 'error' && (
+				<p className='mt-2 rounded-md bg-red-100 p-2 text-xs text-red-700'>{errorAddress}</p>
+			)}
+			...
+		</div>
+	</div>
+	...
+
+
+	@CreateOrder.jsx - submit user gps position using an hidden input IF geolocation fetching was succesful
+	...
+	<div>
+		<input 
+			type="hidden" 
+			name="cart" 
+			value={JSON.stringify(cart)} 
+		/>
+		<input 
+			type="hidden" 
+			name="position" 
+			value={position.longitude && position.latitude 
+						? `${position.latitude}, ${position.longitude` 
+						: ''
+			}
+		/>
+
+
+
+// FETCHING MENU DATA IN THE ORDERID PAGE
+// what do we want to do?
+	PREFACE
+		- in the orderId page, 
+		- we show a list of pizza item that user ordered
+		- we also want to show the ingredient of the item.
+
+	PROBLEM
+		- the problem is 
+		- the cart data of the item does not contain the ingredients data 
+		- this data is in the menu data of the item.
+		- bottom line is that we need to call the menu page loader in this orderId page.
+
+		- we do not want to rewrite the fetching logic as we used it in the menu page
+		- BUT that logic is attached to the menu page.
+
+	SOLUTION
+		- react router 6 gives us a way.
+		- we can use data loaders attached to another page.
+		- this is done via the useFetcher hook
+		- it returns the fetcher object with 3 main properties 
+			- 'load'
+			- this can calls a data loader attached to any route
+
+			- 'data'
+			- this stores the result when the load is called
+
+			- 'state'
+			- this keeps track of the asynchronous activity when the load is called.
+			- 'idle', 'loading', 'error'
+
+
+	@Order.jsx
+	...
+	const fetcher = useFetcher()
+
+	useEffect(
+		function () {
+			if (!fetcher.data && fetcher.state === 'idle') {
+				fetcher.load('/menu')
+			}
+		}, [fetcher]
+	)
+
+	...
+
+	<ul ...>
+		{cart.map( item => (
+				<OrderItem 
+					item={item} 
+					key={item.pizzaId} 
+					ingredients={fetcher.data?.find(el => el.id === item.pizzaId).ingredients ?? []}
+					isLoadingIngredients={fetcher.state === 'loading'}
+			)
+		)}
+	</ul>
+
+
+	@OrderItem
+	'...
+	<li ...>
+		<div>...</div>
+		<p className="text-sm capitalize italic text-stone-500">
+			{
+				isLoadingIngredients ? 'Loading...' : ingredients.join(',')
+			}
+		</p>
+	</li>
+	...
+
+
+// Update Order Information (an update request without navigation)
+// once an order has been placed, 
+// we want to give users an opportunity to make the order a priority
+// this means we need to send a PATCH REQUEST to that orderId
+
+// 
+
+		@UpdateOrder.jsx
+		function UpdateOrder({order}) {
+			return (
+				<Button type="primary">Make priority</Button>
+			)
+		}
+
+
+		@Order.jsx
+		...
+		<div>
+			...
+			{!priority && <UpdateOrder order={order} />}
+		</div>
+
+
+		@UpdateOrder.jsx
+		// similar to the Form component but this does not navigate away from the page
+		// it will simple submit the form & revalidate the page
+
+		...
+		const fetcher = useFetcher();
+		return <fetcher.Form method='PATCH' className='text-right'>
+			<Button type="primary">Make priority</Button>
+		</fetcher.Form>
+		...
+
+		async function action({request, params}) {
+			console.log('update');
+			return null
+		}
+
+
+
+
+// submit the form & revalidate the page (no navigation to another page)
 
 **/
