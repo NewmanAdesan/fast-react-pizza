@@ -155,14 +155,14 @@ export async function action({request}){
   
   if (Object.keys(errors).length > 0) return errors;
 
-  // // submit form data
-  // const newOrder = await createOrder(order);
+  // submit form data
+  const newOrder = await createOrder(order);
 
-  // // clearing user cart
-  // store.dispatch(clearCart())
+  // clearing user cart
+  store.dispatch(clearCart())
 
-  // // redirect to the route '/order/:orderId' using a function by react router called 'redirect'
-  // return redirect( `/order/${newOrder.id}`)
+  // redirect to the route '/order/:orderId' using a function by react router called 'redirect'
+  return redirect( `/order/${newOrder.id}`)
 }
 
 export default CreateOrder;
