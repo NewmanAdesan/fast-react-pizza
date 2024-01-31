@@ -140,8 +140,6 @@ export async function action({request}){
   // transform the form data into an object
   formData = Object.fromEntries(formData);
 
-  console.log(formData);
-
   // process values of the form data into a required structure
   let order = {
     ...formData,

@@ -799,14 +799,415 @@
 		</fetcher.Form>
 		...
 
-		async function action({request, params}) {
+		export async function action({request, params}) {
 			console.log('update');
 			return null
 		}
 
 
+		@App.jsx - connect action function in the orderId route definition
+		...
+		import {action as updateOrderAction} from './features/order/UpdateOrder'
+		...
+		const router = createBrowserRouter(
+			[
+				{
+					element: <AppLayout />,
+					errorElement: <Error />,
+					children: [
+						...
+						{
+							path: '/order/:orderId',
+							element: <Order />,
+							loader: orderLoader,
+							errorElement: <Error />,
+							action: updateOrderAction
+						}
+					]
+				}
+			]
+		)
 
 
-// submit the form & revalidate the page (no navigation to another page)
+		@UpdateOrder.jsx - call the function that would perform the patch request
+		...
+		export async function action({request, params}) {
+			await updateOrder(params.orderId, {priority: true})
+			return null
+		}
+
+
+		// WHY GO THROUGH THIS APPROACH OF USING FETCHER.FORM
+				THE CONCEPT
+					- because of revalidation. what i mean be this is
+					- think of a page that is rendered based on information gotten from a server.
+					- think of a button element on the page which on-clicked will update the information on the server.
+					- dont you think it make sense for the page to refetch the information from the server & re-render? YES IT SHOULD.
+					- this is revalidation.
+
+				THE IMPLEMENTATION
+					- lets think of the orderId page.
+					- via the registered loader function we fetch information about the orderId and then render this information on the page.
+					- via the registered action function when a form is submitted in the page, the function is called with the data from the form which would update information in the server.
+
+					- because of the fetcher.form approach, 
+					- once react-router notices that the action function has been called & returned,
+					- react-router knows to call the loader function again & re-render the orderId page with the new information.
+					- this automation is so helpful especially for highly interactive web application
+
+**/
+
+
+
+
+
+
+
+
+
+
+/***
+
+// 3FH76L
+
+HOW TO PLAN & BUILD A REACT APPLICATION
+
+
+Thinking in REACT ( this works for small application with only one page & little features)
+    - Break the desired UI into components
+    - Build a static version (no state yet)
+    - Think about state management + data flow
+    
+
+
+in real world application we need to adapt this processs (remember this is an overview - in the real world things are not linear)
+
+    1) gather application requirements & features
+
+    2) divide the application into pages
+            - think about the overall & page-level UI
+            - break the desired UI into components
+            - design and build a static version (no state yet)
+
+    3) divide the application into feature categories
+            - think about state management + data flow for each categories (what data needs & where to store that data)
+
+    4) decide on what libraries to use
+
+
+
+Business ReQuirement of the application
+    - users can order one or more pizzas from a menu.
+    - requires no user accounts and no login: users just input their names before using the app.
+    - the pizza menu can change, so it should be loaded from an API
+    - users can add multiple pizzas to a cart before ordering
+    - ordering requires just the user's name, phone number, and address
+    - if possible, GPS location should also be provided, to make delivery easier
+    - user's can mark their order as 'priority' for an additional 20% of the cart price
+    - orders are made by sending a POST request with the order data ( user data + selected pizzas ) to the API
+    - payments are made on delivery, so no payment processing is necessary in the app.
+    - a unique ID will be given to each order that would be displayed, so the user can later look up the status of their delivery with this order.
+    - after an order has been placed, user can mark this order as 'Priority'
+
+
+
+This is a rough sketch & from this we look at the features we want to implement ( you will )
+    - Derive the application main feature categories from the requirement
+            - User : every feature related to the user identity
+            - Menu : every feature related to loading & displaying the menu
+            - Cart : take one or more item from menu & add to cart + update quantities of pizza types
+            - Order : placing a new order, looking up an existing order e.t.c
+
+    - The Necessary pages
+            - Then Homepage (/) - where the user wiill input thier name
+            - The Pizza menu (/menu)
+            - The Cart (/cart)
+            - Placing a new order (/order/new) 
+            - Looking up an order (/order/:orderID)
+
+    
+    - State Management 
+            actually the feature categories map well to the state domains/slices for our application
+            - User : Global UI state (no accounts, stays in app)
+            - Menu : Global Remote state (menu is fetched from API)
+            - Cart : Global UI state (no need for API, just stored in app)
+            - Order : Global Remote state (fetched and submitted to API)
+
+    
+    - Technology Decisions
+            - Routing : React Router
+            - Styling : TailwindCss
+            - Remote state management : React Router ( they now provide a new way of fetching data right inside react router (v6.4+) here we render-as-we-fetch instead of fetch-on-render) (fetching data into pages & sending data using forms)
+            - UI state managment : Redux (state is fairly complex & redux has many advantages for UI state)
+
+
+    do you see how the 'business requirment' led to the 'feature categories' which led to the 'necessary pages' for the application
+
+
+
+
+
+
+
+
+
+Introduction to React Router Version 6
+        using the latest format of setting up routes by with react-router-dom version 6 comes a new way of setting up routes.
+
+        with this format comes support for fetching remote data from a server to be rendered on the page. this way data is fetched in line with the rendereing process instead of fetching the data with useEffect after the page as rendered
+
+        with this format comes an easy support for specifying a page-loading-icon & an error-page
+
+
+How to Set up Routes with React Router Version 6
+        basically we utilize an inbuilt function called 'createBrowserRouter'.
+
+                import {createBrowserRouter, RouteProvider} from 'react-router-dom';
+
+                const routes = createBrowserRouter([
+                        {
+                                path: '/',
+                                element: <Home />,
+                        },
+                        {
+                                path: '/about',
+                                element: <About />
+                        }
+                ])
+
+                function App() {
+                        return <RouteProvider route={route} />
+                }
+
+
+
+
+
+How to Set up Nested Routes with React Router Version 6
+
+        const routes = createBrowserRouter([
+                {
+                        element: <AppLayout />,
+                        children: [
+                                {
+                                        path: '/',
+                                        element: <Home />,
+                                },
+                                {
+                                        path: '/about',
+                                        element: <About />
+                                }
+                        ]
+                },
+        ])
+
+
+Data Loading Concept in React Router Version 6
+        this concept is all about how data fetching in react router and the primary advantage of this is that the data start fetching as the page starts rendering instead of after.
+
+        this implementation involves 4 steps
+                1.) Specifying the asynchronous function that fetches data from the API and then returns the data
+                        
+                        export funtion async loader() {
+                                // fetching logic
+
+                                ....
+                                
+                                // return the actual data
+                                return data
+                        }
+
+                2.) Attach the data loader function to the Route
+
+
+                     @App.jsx
+                        import {loader as moviesLoader} from './Movies'
+
+                        const routes = createBrowserRouter([
+
+                                ...
+                                {
+                                        path: '/movie-list',
+                                        element: <MovieList />,
+                                        loader: moviesLoader
+                                }
+                        ])
+
+
+                3.) Consume Loaded Data
+
+                     @MovieList.jsx
+                        function MovieList() {
+                                const movies = useLoaderData();
+                        }
+
+                
+                4.) Display loading icon to keep track of fetching state (optional)
+
+                     this is done using the useNavigation hook. it can be used anywhere in the application. most times the loader element  is placed in the Application layout.
+
+                     function AppLayout(){
+                        const navigation = useNavigation();
+                        const isLoading = navigation.state == 'loading';
+
+                        ...
+                     }
+
+
+
+
+
+
+Url Parameters in React Router Version 6
+        previously in react router, to obtain the url parameters, one would use the useParams OR useSearchParams hook right.
+
+        this would not work here because hooks are only used within a react component But the loader function is simply a native function.
+
+        thus to obtain the parameters in this case, react-router would pass as argument a params object to your loader function. in this object you can get the value of your URL parameters.
+
+                export async function loader({params}) {
+
+                        // from url of shape '/order/:orderId'
+                        const data = await getOrdersFromAPI(params.orderId)
+
+                        // return data
+                }
+
+
+
+
+Error Handling in React Router Version 6
+        when an error occurs in a react router v6 route, you can specify and error element that can catch the error the display a component that interpretes the error to the user via a UI.
+
+        IF the route does not specify an error element, the error would bubble up to its parent route & the error element at the parent route would handle the error.
+
+        Once an Error Element is specified, in the Error Component utilize the 'useRouterError hook' to get information about the error 
+
+                function Error() {
+                        const navigate = useNavigate();
+                        const error = useRouterError();
+
+                        return <p>{error.data || error.message}</p>
+                }
+
+
+
+
+Data Actions Concept in React Router Version 6
+        react-router provides a way to submit data to a server with ease.
+        to understand how it is done, i will break the story into 3 chapters
+
+        Chapter 1: form submission in html/css
+                - in html & css, submitting a form was quite easy
+                - we specigy to the form element the HTTP METHOD to use
+                - we specify to the form elelment the route address of the server
+                - that is all. automatically when the form is submitted, 
+                - it would get the name/values of the form fields in it, place them in and object & make a request to the server.
+
+
+        Chapter 2: form submission in react
+                - all form fields in a form that was connected to a state that keeps track of their data
+                - we would then have a function that we handle submission in the form which obtain the data of each form field from its state 
+                - finally we make a post API call to the server in this function
+
+
+        Chapter 3: form sumission in react-router-6
+                - react-router-6 takes us back to the form submission is done in html/css
+                - it provides a Form component 
+                - where we specify via the method prop the HTTP METHOD to use
+                - where we also specify via the action prop the route of our application we want to submit the form to
+
+                        @CreateOrder.jsx
+                        <Form method='POST' action='/order/new'>
+                                ...
+                        <Form>
+
+                - when the form is submitted by clicking a button that resides in it
+                - it would automatically get the name/values of all form field element & submit a request to the route specified
+
+                - meanwhile when declaring the route (/order/new) in our application, 
+                - we would have specified a function. this function will receive & deal with request
+
+                        @App.jsx
+                        ...
+                        import {action as createOrderAction} from '...'
+                        ...
+                        const route = createBrowserRouter({
+                                ...
+                                {
+                                        path: '/order/new',
+                                        element: <CreateOrder />,
+                                        action: createOrderAction
+                                },
+                                ...
+                        }) 
+
+                        ...
+
+                - lets look at the funtion
+                        @CreateOrder.jsx
+                        ...
+                        export const async action = ({request}) => {
+
+                                // obtain form data from the request
+                                let formData = await request.formData;
+
+                                // transform FormData class object to an object
+                                formData = Object.entries(formData)
+
+                                console.log(formData)
+
+                                // submit form data
+                                const newOrder = await createOrder(formData)
+
+                                // redirect to another route (this redirect function if passed in-builtly to the actions function)
+                                redirect(`/order/${newOrder.id}`)
+
+                                // this is important
+                                return null
+
+                        }
+
+
+
+
+Form Validation in React Router Version 6
+        - remember the actions function we talked about when we discussed the 'DATA ACTIONS CONCEPT'
+        - remember we said (in code) that the function should return null
+
+        - well to better explain it, 
+        - the value returned in the action function can be accessed by the application route it is connected to via a 'useActionData hook'.
+
+        - this is very interesting and a use case for this is when we plan to give feedback to the component based on submission action.
+        - a very good usecase is for FORM VALIDATION
+
+        - basically we process the form field value in the actions function
+        - if the value is not in the format we want, we do not submit instead we return an error text
+        - via the 'useActionData hook' the component listens, receives the error text & displsy it
+
+                @CreateOrder.jsx
+                ...
+                export default const CreateOrder = () => {
+                        ...
+                        const formErrors = useActionData();
+                        console.log(formError)
+                        ...
+                }
+
+                ...
+
+
+                export const async action = ({request}) => {
+                        let formData = await request.formData;
+                        formData = Object.entries(formData)
+
+                        let errors = {}
+                        if (!isValidPhoneNumber(formData.phone)) errors.phone = 'Please give us your correct phone number. We might need it to contact you.'
+                        if (!isValidID(formData.id)) errors.id = 'Please give us a valid identification number. We need it for verification'
+                        if (Object.keys(errors).length > 0) return errors
+
+                        ...
+                }
+        - this is what i mean
 
 **/

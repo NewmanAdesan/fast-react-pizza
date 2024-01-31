@@ -13,8 +13,6 @@ function getPosition() {
 }
 
 export const fetchAddress = createAsyncThunk('user/fetchAddress', async function (){
-
-  console.log('this function was called');
   
   // 1) We get the user's geolocation position
   const positionObj = await getPosition();
